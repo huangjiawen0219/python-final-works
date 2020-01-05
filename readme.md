@@ -2,6 +2,16 @@
 - **代码GitHub的url** https://github.com/huangjiawen0219/python-final-things
 - **pythonanywhere**的url http://huangjiawen.pythonanywhere.com/?
 
+## 网页功能
+- 通过用户的选择主题，展示关于ted主题的内容。
+- 背景故事
+- 可视化数据
+- 相关分析/总结
+- 数据故事
+
+## 功能扩展
+- 用户可通过多种自定的选择跳转交互页面，查看进行数据筛选后不同的内容。
+
 ## HTML档描述
 - 1.所有的HTML文件放置在templates文件夹中，其中base.html为基模板，其余html皆继承该基模板。
 - 2.base.html设定基本flask html模版档
@@ -42,3 +52,76 @@
 - 点击按钮选项“孩子们”，点击“选择”，即可跳转到【孩子们】数据曲线图；
 - 点击按钮“内向的人”，点击“选择”，即可跳转到【内向的人】数据曲线图；
 其他页面动作与以上相似。
+
+## 数据交互档描述
+- 是否含有合适的推导式
+# 浏览量和评论数的关系
+@app.route('/Scatter')
+def index_bar():
+    ted = pd.read_csv("./static/data/ted_main.csv")
+    ted['film_date'] = ted['film_date'].apply(lambda x: datetime.datetime.fromtimestamp(int(x)).strftime('%d-%m-%Y'))
+    ted['published_date'] = ted['published_date'].apply(
+        lambda x: datetime.datetime.fromtimestamp(int(x)).strftime('%d-%m-%Y'))
+    r = (
+        EffectScatter()
+            .add_xaxis(ted['views'].values.tolist())
+            .add_yaxis('商家A', ted['comments'].values.tolist())
+            .set_global_opts(
+            title_opts=opts.TitleOpts(title="EffectScatter-基本示例"),
+            xaxis_opts=opts.AxisOpts(
+                type_="value",  # x轴数据类型是连续型的
+                min_=0  # x轴范围最小为20
+            ))
+    )
+    return render_template('index.html',
+                           myechart=r.render_embed(),select=list(res.keys()))
+
+- 处理数据
+for i in df:
+    if i[0] not in res:
+        res[i[0]] = {i[1]: 1}
+    else:
+        if i[1] not in res[i[0]]:
+            res[i[0]][i[1]] = 1
+        else:
+            res[i[0]][i[1]] += 1
+
+- 是否含有合适的数据结构嵌套
+# 浏览量和评论数TOP10视频是
+@app.route('/bar1')
+def index_bar_every_1_tp():
+    ted = pd.read_csv("./static/data/ted_main.csv")
+    ted['film_date'] = ted['film_date'].apply(lambda x: datetime.datetime.fromtimestamp(int(x)).strftime('%d-%m-%Y'))
+    ted['published_date'] = ted['published_date'].apply(
+        lambda x: datetime.datetime.fromtimestamp(int(x)).strftime('%d-%m-%Y'))
+    views_ted = ted[['main_speaker', 'title', 'published_date', 'views', 'comments', 'tags', 'speaker_occupation',
+                     'num_speaker']].sort_values(by='views', ascending=False)
+
+    views_ted_1 = ted[['main_speaker', 'title', 'published_date', 'views', 'comments', 'tags', 'speaker_occupation',
+                       'num_speaker']].sort_values(by='comments', ascending=False)
+    bar = (
+        Bar()
+            .add_xaxis(views_ted.head(10).main_speaker.values.tolist())
+            .add_yaxis("top10", views_ted.head(10).views.values.tolist())
+            .set_global_opts(title_opts=opts.TitleOpts(title="浏览量和评论数TOP10视频"))
+            .set_series_opts(
+            label_opts=opts.LabelOpts(is_show=True),
+        )
+    )
+    bar1 = (
+        Bar()
+            .add_xaxis(views_ted_1.head(10).main_speaker.values.tolist())
+            .add_yaxis("top10", views_ted_1.head(10).comments.values.tolist())
+            .set_global_opts(title_opts=opts.TitleOpts(title="浏览量和评论数TOP10视频"))
+            .set_series_opts(
+            label_opts=opts.LabelOpts(is_show=True),
+        )
+    )
+    grid = (
+        Grid()
+            .add(bar, grid_opts=opts.GridOpts(pos_bottom="60%"))
+            .add(bar1, grid_opts=opts.GridOpts(pos_top="60%"))
+    )
+
+    return render_template('index.html',
+                           myechart=grid.render_embed(),select=list(res.keys()))
